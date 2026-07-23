@@ -1,0 +1,33 @@
+[tools]
+node = "24"
+"npm:purescript" = "0.15.16"
+"npm:spago" = "1.0.4"
+"npm:purs-tidy" = "latest"
+
+[tasks.npm-install]
+description = "Install npm runtime dependencies used by PureScript FFI (e.g. purescript-uuid's uuid package)"
+run = "npm install"
+sources = ["package.json", "package-lock.json"]
+outputs = ["node_modules/.package-lock.json"]
+
+[tasks.build]
+description = "Compile the project"
+depends = ["npm-install"]
+run = "spago build"
+
+[tasks.test]
+description = "Run the test suite"
+depends = ["build"]
+run = "spago test"
+
+[tasks.format]
+description = "Format all PureScript sources"
+run = "purs-tidy format-in-place 'src/**/*.purs' 'test/**/*.purs'"
+
+[tasks.format-check]
+description = "Check formatting without writing changes"
+run = "purs-tidy check 'src/**/*.purs' 'test/**/*.purs'"
+
+[tasks.clean]
+description = "Remove build output"
+run = "rm -rf output .spago"
