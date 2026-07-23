@@ -1,0 +1,101 @@
+# event-store
+
+A PureScript event-sourcing library — an append-only event log with
+log/category/stream scoping, pluggable storage adapters (in-memory +
+Postgres), a projection/read-model layer, and a distributed processing layer
+for always-on event consumers. It's a PureScript port of the Python
+`logicblocks.event.store` library (see `meta/research/codebase/` for the
+full feature catalog this project is being built against).
+
+## Status
+
+Pre-implementation. `meta/` contains the research, roadmap, and work items;
+no PureScript code has been written yet. See `meta/roadmap/` for the
+phased build order and `meta/work/` for individual work items.
+
+## Cross-language goal: PureScript core, first-class TypeScript/JavaScript usage
+
+**This is a standing design constraint, not just a nice-to-have.** The
+library's core is written in PureScript, but TypeScript and JavaScript
+consumers must be able to use it as a normal npm dependency — not as a
+"PureScript library that happens to also compile to JS," but as something
+that feels native from a TS/JS call site (typed function signatures, plain
+data shapes, no requirement to understand PureScript's runtime
+representations to use it correctly).
+
+Concretely, this means:
+
+- **Public API surface should be interop-friendly by construction.** Prefer
+  plain records/data over deeply nested typeclass-polymorphic signatures at
+  module boundaries meant for external consumption — PureScript's compiled
+  JS output represents records as plain JS objects, which is the easy case;
+  typeclass dictionaries, `newtype` wrappers, and curried multi-argument
+  functions are the friction points for a TS caller and should be smoothed
+  over at the boundary rather than left for consumers to work around.
+- **TypeScript type declarations are a first-class deliverable**, not an
+  afterthought bolted on later. Every public module intended for external
+  consumption should have accompanying `.d.ts` declarations that accurately
+  describe its compiled-JS shape. There's no mature automatic
+  PureScript→TypeScript declaration generator in the ecosystem as of this
+  writing — expect these to be hand-authored/hand-maintained wrapper
+  modules or declaration files, and treat keeping them in sync with the
+  PureScript source as an explicit review concern, not something that just
+  falls out of the build.
+- **A dedicated bindings/packaging boundary is expected eventually** — likely
+  a thin wrapper package (or a wrapper module within this package) exposing
+  a curated, TS-ergonomic subset/reshaping of the full PureScript API, distinct
+  from the "raw" compiled output. Don't design this speculatively ahead of
+  need, but when a work item starts asking "how does a TS user call this,"
+  default to *reshaping at a boundary* over *asking TS users to learn
+  PureScript idioms*.
+- When a work item's API design has a choice between "more idiomatic
+  PureScript" and "meaningfully harder to consume from TypeScript," raise it
+  explicitly rather than silently picking the PureScript-idiomatic option —
+  this tension is expected to recur throughout the roadmap (e.g. the
+  `Clock` typeclass, the query DSL's ADTs, the JSON conversion framework's
+  typeclass dispatch are all boundary-relevant design points called out in
+  the research/roadmap docs).
+
+## Toolchain
+
+Tool versions and tasks are managed via [`mise`](https://mise.jdx.dev)
+(`mise.toml`), not a `package.json` + Makefile — this keeps tool-version
+pinning and task definitions in one file. Once scaffolded (Phase 1 of the
+current implementation plan):
+
+- `mise install` — provisions Node, `purs`, `spago`, `purs-tidy`.
+- `mise run build` — compiles the project (`spago build`).
+- `mise run test` — runs the test suite (`spago test`).
+- `mise run format` / `mise run format-check` — `purs-tidy` formatting.
+
+PureScript project config is `spago.yaml` (current registry-based Spago,
+not the deprecated Dhall/package-sets toolchain).
+
+## Module & project conventions
+
+- Module namespace: `EventStore.*` (not `JohnCowie.*` — this project
+  deliberately diverges from the author's other PureScript libraries' naming
+  convention since it isn't a dependency of them; see work item 0001's
+  Drafting Notes).
+- Test framework: [`purescript-spec`](https://github.com/purescript-spec/purescript-spec),
+  `describe`/`it` blocks structured to mirror each work item's Given/When/Then
+  Acceptance Criteria one-to-one, so a reviewer can trace test → criterion
+  directly.
+- `NewEvent` (unsent) vs `StoredEvent` (persisted, fully specified, produced
+  only by the store) is a deliberate, load-bearing distinction carried over
+  from the Python original — don't collapse these into one type.
+
+## Working with this repo's planning docs
+
+This repo uses the Accelerator plugin's `meta/` conventions:
+
+- `meta/research/codebase/` — codebase research (the feature-catalog
+  document this whole port is based on).
+- `meta/roadmap/` — phase-grouped work-item candidates (informal planning
+  docs, not formal work items themselves).
+- `meta/work/` — formal work items (`/create-work-item`, `/refine-work-item`).
+- `meta/plans/` — implementation plans (`/create-plan`, `/implement-plan`).
+
+When starting a new roadmap item, use `/create-work-item` referencing the
+relevant roadmap entry, then `/create-plan @meta/work/NNNN-....md` once the
+work item is drafted.
