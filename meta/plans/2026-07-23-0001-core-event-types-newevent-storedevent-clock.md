@@ -193,7 +193,7 @@ jobs:
 
 #### Automated Verification:
 
-- [x] `mise install` completes successfully and provisions `node`, `purs`, `spago`, `purs-tidy`
+- [x] `mise install` completes successfully and provisions `node` (`purs`/`spago`/`purs-tidy` are npm `devDependencies`, installed by `npm install` — see Deviations)
 - [x] `mise run build` compiles the (placeholder) project with no errors
 - [x] `mise run test` runs the placeholder test suite and exits 0
 - [x] `mise run format-check` passes on the scaffolded files
@@ -201,7 +201,7 @@ jobs:
 #### Manual Verification:
 
 - [x] `spago.yaml` and the generated lockfile are committed and reproducible on a clean checkout (`git clone` + `mise install` + `mise run build` from scratch)
-- [ ] CI workflow runs successfully on GitHub Actions once pushed (not verifiable until this branch is pushed)
+- [x] CI workflow runs successfully on GitHub Actions once pushed — required an additional fix after the initial push (see Deviations)
 
 #### Deviations from plan (Phase 1):
 
@@ -210,6 +210,7 @@ jobs:
 - Added `now` and `datetime` to `spago.yaml`'s main dependencies (not listed in the plan's dependency list) — required for `Effect.Now` and `Data.DateTime.Instant`, both used by Phase 2's `Clock` module.
 - Added `spec-node` as a test dependency and switched `test/Test/Main.purs` from `Test.Spec.Runner.runSpec` to `Test.Spec.Runner.Node.runSpecAndExitProcess` — the plan's `runSpec` + `launchAff_` combination is deprecated in `spec` 8.1.2 (`runSpec` now warns to use `spec-node`'s runner, which also gives correct process exit codes for CI).
 - Added `.purs-repl` and `.spec-results/` to `.gitignore` (spago/spec-node scratch output not covered by the plan's `.gitignore` list).
+- **`mise`'s npm backend was dropped for `purescript`/`spago`/`purs-tidy` after the CI build failed** with "Failed to find purs" even though `mise which purs` resolved a path and the shim existed. Root cause: the `purescript` npm package's `postinstall` script (`install-purescript`, which downloads the real compiled `purs` binary) never ran under mise's npm backend in CI, leaving `purs.bin` as an unexecuted placeholder stub (confirmed by directly invoking the resolved binary path and getting a Node syntax error on the placeholder's prose text). This didn't reproduce locally because the postinstall script did run there. Fix: moved `purescript`, `spago`, `purs-tidy` into `package.json` `devDependencies` (installed via a plain `npm install`, which runs postinstall scripts normally) and changed `mise.toml`'s tasks to invoke them via `npx`. `mise.toml` now only manages the Node version and task definitions; the PureScript toolchain and the `uuid` runtime FFI dependency both live in `package.json`/`package-lock.json`.
 
 ---
 

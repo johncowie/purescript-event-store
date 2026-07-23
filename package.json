@@ -3,5 +3,10 @@
   "private": true,
   "dependencies": {
     "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "purescript": "0.15.16",
+    "spago": "1.0.4",
+    "purs-tidy": "0.11.1"
   }
 }

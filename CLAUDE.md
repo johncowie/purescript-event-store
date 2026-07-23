@@ -58,15 +58,20 @@ Concretely, this means:
 
 ## Toolchain
 
-Tool versions and tasks are managed via [`mise`](https://mise.jdx.dev)
-(`mise.toml`), not a `package.json` + Makefile — this keeps tool-version
-pinning and task definitions in one file. Once scaffolded (Phase 1 of the
-current implementation plan):
+Node's version and all task definitions live in [`mise`](https://mise.jdx.dev)
+(`mise.toml`) rather than a Makefile. The PureScript toolchain itself
+(`purescript`, `spago`, `purs-tidy`) is installed as npm `devDependencies` in
+`package.json`, not via mise's npm backend — that backend was tried first but
+turned out to skip the `purescript` npm package's `postinstall` step (which
+downloads the real compiled `purs` binary) in CI, silently leaving a
+placeholder stub; plain `npm install` runs postinstall scripts normally and
+doesn't have this problem. `package.json` also carries `uuid`, the npm
+package `purescript-uuid`'s FFI imports at runtime.
 
-- `mise install` — provisions Node, `purs`, `spago`, `purs-tidy`.
-- `mise run build` — compiles the project (`spago build`).
-- `mise run test` — runs the test suite (`spago test`).
-- `mise run format` / `mise run format-check` — `purs-tidy` formatting.
+- `mise install` — provisions Node.
+- `mise run build` — installs npm deps then compiles the project (`npx spago build`).
+- `mise run test` — runs the test suite (`npx spago test`).
+- `mise run format` / `mise run format-check` — `purs-tidy` formatting (`npx purs-tidy`).
 
 PureScript project config is `spago.yaml` (current registry-based Spago,
 not the deprecated Dhall/package-sets toolchain).
