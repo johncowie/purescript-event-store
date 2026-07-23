@@ -9,7 +9,7 @@ status: draft
 kind: story
 priority: medium
 tags: [event-store, purescript-port, phase-1, core-types]
-last_updated: "2026-07-23T21:06:20+00:00"
+last_updated: "2026-07-23T21:29:56+00:00"
 last_updated_by: John Cowie Del Corral
 schema_version: 1
 ---
@@ -70,6 +70,7 @@ None outstanding — Clock-as-typeclass and UUID library choice were resolved du
 - Clock is modelled as a typeclass, resolved by instance rather than passed as an explicit argument or effect row — this shapes how every later constructor that needs "now" (event publishing, checkpoint state, etc.) will be written, so worth locking in here.
 - `stream`/`category` fields on `StoredEvent` are plain values in this item; they'll likely be narrowed to proper identifier types once the event-source-identifiers item lands — don't over-invest in their shape here.
 - Payload/metadata JSON-value defaulting is a forward reference to the not-yet-built JSON conversion framework item; this item should not block on that framework existing, just leave the type parameter open with a placeholder default if needed.
+- Cross-language compatibility (see `CLAUDE.md`, added after this item was originally drafted): `Clock` as a typeclass is PureScript-idiomatic but not directly callable from TypeScript/JS — a TS caller can't provide a typeclass instance. This item's internal PureScript implementation should stay typeclass-based as decided, but implementation should not assume the typeclass itself is the TS/JS-facing surface; a plain-value/constructor-based wrapper around `SystemClock`/`StaticClock` (e.g. exposing constructor functions rather than the class) will likely be needed once the bindings boundary is designed. This doesn't block or change this item's scope — noted here so it isn't lost before implementation starts.
 
 ## Drafting Notes
 

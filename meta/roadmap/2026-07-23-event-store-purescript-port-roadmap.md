@@ -7,7 +7,7 @@ author: John Cowie Del Corral
 producer: manual
 status: draft
 tags: [roadmap, event-sourcing, purescript-port, event-store]
-last_updated: "2026-07-23T00:00:00+00:00"
+last_updated: "2026-07-23T21:29:56+00:00"
 last_updated_by: John Cowie Del Corral
 schema_version: 1
 ---
@@ -49,6 +49,15 @@ projection store (Phase 3) — it's listed in Phase 3 since it depends on
 `ProjectionStore`, but it's really "Phase 2 machinery applied to a Phase 3
 dependency." Worth flagging during refinement.
 
+**Cross-language compatibility** (see `CLAUDE.md`): this library's core is
+PureScript, but TypeScript/JavaScript consumers must be able to use it
+natively — not as an afterthought. This is a standing design constraint that
+recurs across several items below, flagged inline where it's most acute
+(typeclass-heavy public surfaces, ADT-shaped DSLs). When drafting an affected
+item via `/create-work-item`, raise the PureScript-idiomatic-vs-TS-ergonomic
+tradeoff explicitly rather than silently defaulting to the PureScript-native
+shape.
+
 ---
 
 ## Phase 1 — Core types, event store, adapters, projectors
@@ -57,6 +66,14 @@ dependency." Worth flagging during refinement.
    (`observed_at`/`occurred_at`), generic name/payload/metadata parameters,
    `serialise`/`summarise`. Includes the injectable `Clock` abstraction
    (needed to make timestamp defaulting testable).
+   *(Already drafted as work item 0001 — Clock was decided as a typeclass
+   there. Cross-language compatibility note: a typeclass-resolved `Clock` is
+   PureScript-idiomatic but not directly callable from TS/JS; a TS-facing
+   entry point will likely need a plain-value/constructor-based wrapper
+   around `SystemClock`/`StaticClock` rather than exposing the typeclass
+   itself across the boundary — worth a technical note on the work item
+   before implementation starts, or a small follow-up item once the
+   bindings boundary is designed.)*
 
 2. **Event source identifiers** — `LogIdentifier`/`CategoryIdentifier`/
    `StreamIdentifier` sibling hierarchy, the `target(category?, stream?)`
@@ -69,6 +86,14 @@ dependency." Worth flagging during refinement.
    hatch for values with no static instance. This is the load-bearing
    extensibility mechanism the rest of the port depends on — do it early and
    get the design right rather than fast.
+   *(Cross-language compatibility note: this is the single highest-leverage
+   item for TS/JS interop — every value crossing the language boundary will
+   go through this framework's JSON representation. Since PureScript's
+   compiled JSON values are plain JS objects/arrays/primitives already, JSON
+   is naturally the friendliest interchange shape for TS consumers — treat
+   "can a TS caller construct/consume this JSON shape without any
+   PureScript-specific tooling" as an explicit acceptance criterion for this
+   item, not just an internal serialisation concern.)*
 
 4. **EventStore API surface** — `EventStore` factory plus `EventStream`/
    `EventCategory`/`EventLog`, single-stream `publish`, atomic
@@ -119,6 +144,11 @@ dependency." Worth flagging during refinement.
     explicit `Map EventName Handler` dispatch instead of the Python
     reflection-based naming convention — PureScript's static style favours
     explicit mapping.
+    *(Cross-language compatibility note: an explicit `Map EventName Handler`
+    dispatch is also the more TS/JS-friendly choice here — a plain string-keyed
+    map of handler functions is far easier to expose/construct from a TS
+    caller than reflection-based method dispatch, so this decision is likely
+    reinforced rather than complicated by the interop goal.)*
 
 13. **Event store adapter conformance test suite** — a shared abstract test
     contract (saves, concurrency races, scanning, paging, write conditions)
@@ -214,12 +244,27 @@ dependency." Worth flagging during refinement.
    comparison, `IN`, `CONTAINS`, regex), `SortField`/`SortClause`, `Path`
    (nested/JSON field addressing), and `PagingClause` (keyset + offset
    strategies) as a single backend-agnostic AST.
+   *(Cross-language compatibility note: a closed ADT is easy to pattern-match
+   in PureScript but not directly constructible from TS/JS without either a
+   generated/hand-written builder API or a plain-JSON representation of the
+   AST that a TS caller can construct as a literal object and have decoded on
+   the PureScript side. Decide the TS-facing query construction story — likely
+   a JSON/builder-function API rather than expecting TS callers to model the
+   ADT's constructors directly — as part of this item, not as a deferred
+   afterthought.)*
 
 2. **Query DSL functions & extensibility decision** — the `Function`
    mechanism (e.g. `Similarity`) usable in sort clauses. Needs an early
    decision (flagged as an open question in the research): closed sum type
    now, with extensibility added later if needed, versus an open/typeclass-
    based extension point from day one.
+   *(Cross-language compatibility note: an open/typeclass-based extension
+   point is significantly harder to expose across the TS/JS boundary than a
+   closed sum type — a TS consumer can't add a typeclass instance. If
+   extensibility is required at all for TS/JS callers specifically, favour a
+   registry/callback-based mechanism over a typeclass, or scope
+   TS/JS-authored `Function`s out of the extensibility requirement entirely
+   and say so explicitly.)*
 
 3. **Search/Lookup query types** — `Search` (filters + optional sort/
    paging) and `Lookup` (point lookup, filters only), the two query shapes
@@ -275,3 +320,11 @@ refined via `/create-work-item`, rather than up front:
   `purescript-johncowie-events` already covers ground here and should be
   reused rather than rebuilt — worth checking before starting Phase 1,
   item 10 (Postgres adapter) in particular.
+- Cross-language compatibility (see `CLAUDE.md`): where exactly the
+  TS/JS-facing bindings boundary lives (a wrapper package vs. wrapper
+  modules within this package) hasn't been decided, and probably shouldn't
+  be until enough of the public API exists to see its actual shape — but
+  each of Phase 1, item 1 (`Clock`), item 3 (JSON conversion framework),
+  item 12 (Projector dispatch), and Phase 3, items 1–2 (query DSL) should
+  carry an explicit TS/JS-ergonomics decision by the time they're drafted,
+  per the inline notes above.
