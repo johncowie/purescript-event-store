@@ -13,5 +13,13 @@ jobs:
       - uses: jdx/mise-action@v2
         with:
           reshim: true
+          cache: false
+      - run: |
+          echo "--- mise which purs ---"
+          mise which purs || true
+          echo "--- shims dir ---"
+          ls -la "$(mise where shims 2>/dev/null || echo ~/.local/share/mise/shims)" || true
+          echo "--- purs install dir ---"
+          find ~/.local/share/mise/installs -maxdepth 2 -iname "*purescript*" -o -iname "*purs*" 2>/dev/null || true
       - run: mise run build
       - run: mise run test
