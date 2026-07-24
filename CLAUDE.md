@@ -25,13 +25,26 @@ representations to use it correctly).
 
 Concretely, this means:
 
-- **Public API surface should be interop-friendly by construction.** Prefer
-  plain records/data over deeply nested typeclass-polymorphic signatures at
-  module boundaries meant for external consumption — PureScript's compiled
-  JS output represents records as plain JS objects, which is the easy case;
-  typeclass dictionaries, `newtype` wrappers, and curried multi-argument
-  functions are the friction points for a TS caller and should be smoothed
-  over at the boundary rather than left for consumers to work around.
+- **The PureScript core's typeclass-based extensibility is non-negotiable
+  and must never be redesigned, restricted, or watered down for TS
+  ergonomics.** A PureScript consumer must always be able to write new
+  instances of this library's typeclasses (`Clock` today, others later)
+  exactly as they would for any other PureScript library. TS/JS ergonomics
+  are achieved by adding a wrapper/bindings layer on top of the untouched
+  core, never by changing the core API itself. If a work item's only way to
+  make something easier for TS callers is to weaken or remove typeclass
+  polymorphism from the core, that is the wrong move — reach for an additive
+  wrapper instead, or flag the tension explicitly rather than making the
+  trade silently.
+- **Public API surface should be interop-friendly by construction** — but
+  only at the boundary layer described above, not by compromising the core.
+  Prefer plain records/data over deeply nested typeclass-polymorphic
+  signatures in wrapper/bindings modules meant for external consumption —
+  PureScript's compiled JS output represents records as plain JS objects,
+  which is the easy case; typeclass dictionaries, `newtype` wrappers, and
+  curried multi-argument functions are the friction points for a TS caller
+  and should be smoothed over by the wrapper rather than left for consumers
+  to work around, and rather than eliminated from the core.
 - **TypeScript type declarations are a first-class deliverable**, not an
   afterthought bolted on later. Every public module intended for external
   consumption should have accompanying `.d.ts` declarations that accurately
@@ -44,10 +57,14 @@ Concretely, this means:
 - **A dedicated bindings/packaging boundary is expected eventually** — likely
   a thin wrapper package (or a wrapper module within this package) exposing
   a curated, TS-ergonomic subset/reshaping of the full PureScript API, distinct
-  from the "raw" compiled output. Don't design this speculatively ahead of
-  need, but when a work item starts asking "how does a TS user call this,"
-  default to *reshaping at a boundary* over *asking TS users to learn
-  PureScript idioms*.
+  from the "raw" compiled output. This wrapper is strictly additive — it
+  never removes typeclass polymorphism from the core, it hides the
+  typeclass-dictionary mechanism from TS callers while the core keeps using
+  it. Don't design this speculatively ahead of need, but when a work item
+  starts asking "how does a TS user call this," default to *reshaping at a
+  boundary* over *asking TS users to learn PureScript idioms* — and see the
+  npm packaging / bindings-boundary spike (once drafted) for the concrete
+  investigation.
 - When a work item's API design has a choice between "more idiomatic
   PureScript" and "meaningfully harder to consume from TypeScript," raise it
   explicitly rather than silently picking the PureScript-idiomatic option —
