@@ -1,0 +1,15 @@
+{
+  "name": "event-store",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "purescript": "0.15.16",
+    "spago": "1.0.4",
+    "purs-tidy": "0.11.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}

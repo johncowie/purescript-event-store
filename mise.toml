@@ -1,0 +1,55 @@
+[tools]
+node = "24"
+
+[tasks.npm-install]
+description = "Install npm dependencies (PureScript toolchain devDependencies + FFI runtime deps like purescript-uuid's uuid package)"
+run = "npm install"
+sources = ["package.json", "package-lock.json"]
+outputs = ["node_modules/.package-lock.json"]
+
+[tasks.build]
+description = "Compile the project"
+depends = ["npm-install"]
+run = "npx spago build"
+
+[tasks.copy-types]
+description = "Copy hand-authored TypeScript declarations (types/*.d.ts) next to their compiled PureScript output modules, so TS resolves them automatically"
+depends = ["build"]
+run = '''
+for f in types/*.d.ts; do
+  name=$(basename "$f" .d.ts)
+  mkdir -p "output/$name"
+  cp "$f" "output/$name/index.d.ts"
+done
+'''
+
+[tasks.test]
+description = "Run the PureScript test suite"
+depends = ["build"]
+run = "npx spago test"
+
+[tasks.test-ts]
+description = "Type-check and run the TypeScript consumer-experience test suite"
+depends = ["copy-types"]
+run = """
+npx tsc --noEmit
+npx vitest run
+"""
+
+[tasks.test-all]
+description = "Run the PureScript test suite and the TypeScript consumer-experience suite"
+depends = ["test", "test-ts"]
+
+[tasks.format]
+description = "Format all PureScript sources"
+depends = ["npm-install"]
+run = "npx purs-tidy format-in-place 'src/**/*.purs' 'test/**/*.purs'"
+
+[tasks.format-check]
+description = "Check formatting without writing changes"
+depends = ["npm-install"]
+run = "npx purs-tidy check 'src/**/*.purs' 'test/**/*.purs'"
+
+[tasks.clean]
+description = "Remove build output"
+run = "rm -rf output .spago"

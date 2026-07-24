@@ -1,0 +1,19 @@
+package:
+  name: event-store
+  dependencies:
+    - prelude
+    - effect
+    - console
+    - maybe
+    - now
+    - datetime
+    - uuid
+  test:
+    main: Test.Main
+    dependencies:
+      - spec
+      - spec-node
+workspace:
+  packageSet:
+    registry: 78.0.0
+  extraPackages: {}
