@@ -56,6 +56,30 @@ Concretely, this means:
   typeclass dispatch are all boundary-relevant design points called out in
   the research/roadmap docs).
 
+### Proving the TS experience: `types/` and `test/ts/`
+
+Every public module gets a hand-authored declaration file in `types/`
+(`types/EventStore.Clock.d.ts`, `types/EventStore.Event.d.ts`, ...) and a
+corresponding TypeScript test in `test/ts/` that imports the *compiled*
+PureScript output directly (`output/EventStore.Clock/index.js`, not a
+wrapper) and exercises it the way a real TS caller would have to today. This
+is deliberately a warts-and-all suite, not an aspirational one — it should
+describe the raw compiled-JS shape (typeclass dictionaries, curried
+functions, `Maybe` instead of `| undefined`) exactly as it is, so it fails
+loudly if the compiled output's shape drifts from its `.d.ts`, and so the
+friction it documents stays visible and concrete rather than living only as
+prose in this file. `mise run test-ts` copies `types/*.d.ts` next to their
+compiled module (`mise run copy-types`), type-checks `test/ts/` with `tsc
+--noEmit`, and runs the suite with `vitest`; `mise run test-all` runs both
+this and the PureScript spec suite, and is what CI runs.
+
+When a work item adds or changes a public module, update both its `.d.ts`
+and its `test/ts/` coverage as part of that work, the same way the
+PureScript spec suite is expected to track Acceptance Criteria one-to-one.
+This suite is the first rung of the bindings/packaging boundary mentioned
+above, not a substitute for it — see `meta/work/` for the packaging
+work item once one exists.
+
 ## Toolchain
 
 Node's version and all task definitions live in [`mise`](https://mise.jdx.dev)
@@ -70,7 +94,9 @@ package `purescript-uuid`'s FFI imports at runtime.
 
 - `mise install` — provisions Node.
 - `mise run build` — installs npm deps then compiles the project (`npx spago build`).
-- `mise run test` — runs the test suite (`npx spago test`).
+- `mise run test` — runs the PureScript test suite (`npx spago test`).
+- `mise run test-ts` — copies `types/*.d.ts` next to their compiled module, type-checks and runs the TypeScript consumer-experience suite (`test/ts/`) — see below.
+- `mise run test-all` — both of the above; this is what CI runs.
 - `mise run format` / `mise run format-check` — `purs-tidy` formatting (`npx purs-tidy`).
 
 PureScript project config is `spago.yaml` (current registry-based Spago,
